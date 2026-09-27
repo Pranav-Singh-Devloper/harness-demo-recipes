@@ -36,7 +36,15 @@ function recipeList(recipes) {
 }
 
 function homePage(params) {
-  const recipes = sortRecipes(getAll(), params.get('sort') || 'title');
+  let recipes = getAll();
+  const maxTimeParam = params.get('max_time');
+  if (maxTimeParam !== null) {
+    const maxTime = Number(maxTimeParam);
+    if (!isNaN(maxTime) && isFinite(maxTime)) {
+      recipes = recipes.filter(recipe => totalTime(recipe) <= maxTime);
+    }
+  }
+  recipes = sortRecipes(recipes, params.get('sort') || 'title');
   return layout(
     'All recipes',
     `<h1>All recipes</h1>
@@ -46,7 +54,14 @@ function homePage(params) {
 }
 
 function recipePage(recipe, params) {
-  const servings = params.get('servings') ? Number(params.get('servings')) : recipe.servings;
+  let servings = recipe.servings;
+  const rawServings = params.get('servings');
+  if (rawServings !== null) {
+    const n = Number(rawServings);
+    if (!isNaN(n) && Number.isInteger(n) && n >= 1 && n <= 50) {
+      servings = n;
+    }
+  }
   const ingredients = scaleIngredients(recipe.ingredients, recipe.servings, servings);
   const steps = recipe.steps.map((step) => `<li>${escapeHtml(step)}</li>`).join('\n');
   return layout(
@@ -103,6 +118,9 @@ function handle(req, res) {
   const match = pathname.match(/^\/recipes\/([^/]+)$/);
   if (match) {
     const recipe = findBySlug(decodeURIComponent(match[1]));
+    if (!recipe) {
+      return send(res, 404, layout('Not found', '<h1>Recipe not found</h1>'));
+    }
     return send(res, 200, recipePage(recipe, searchParams));
   }
   return send(res, 404, layout('Not found', '<h1>Page not found</h1>'));
