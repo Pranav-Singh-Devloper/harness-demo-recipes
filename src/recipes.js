@@ -14,10 +14,15 @@ function totalTime(recipe) {
   return recipe.prep + recipe.cook;
 }
 
-/** Recipes whose title contains the query (case-insensitive). */
+/** Recipes whose title contains the query (case-insensitive, ignoring accents). */
 function search(query) {
   const q = query.trim().toLowerCase();
-  return recipes.filter((recipe) => recipe.title.toLowerCase().includes(q));
+  const normalizedQ = q.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return recipes.filter((recipe) => {
+    const title = recipe.title.toLowerCase();
+    const normalizedTitle = title.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return normalizedTitle.includes(normalizedQ);
+  });
 }
 
 /** Sort by "title" (default) or "time" (total time). Returns a new array. */
