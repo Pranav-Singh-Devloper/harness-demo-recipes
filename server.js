@@ -46,7 +46,14 @@ function homePage(params) {
 }
 
 function recipePage(recipe, params) {
-  const servings = params.get('servings') ? Number(params.get('servings')) : recipe.servings;
+  let servings = recipe.servings;
+  const servingsParam = params.get('servings');
+  if (servingsParam !== null) {
+    const num = Number(servingsParam);
+    if (!isNaN(num) && Number.isInteger(num) && num >= 1 && num <= 50) {
+      servings = num;
+    }
+  }
   const ingredients = scaleIngredients(recipe.ingredients, recipe.servings, servings);
   const steps = recipe.steps.map((step) => `<li>${escapeHtml(step)}</li>`).join('\n');
   return layout(
@@ -103,6 +110,9 @@ function handle(req, res) {
   const match = pathname.match(/^\/recipes\/([^/]+)$/);
   if (match) {
     const recipe = findBySlug(decodeURIComponent(match[1]));
+    if (!recipe) {
+      return send(res, 404, layout('Not found', '<h1>Recipe not found</h1>'));
+    }
     return send(res, 200, recipePage(recipe, searchParams));
   }
   return send(res, 404, layout('Not found', '<h1>Page not found</h1>'));
